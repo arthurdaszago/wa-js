@@ -16,12 +16,14 @@
 
 import * as playwright from 'playwright-chromium';
 
+import { config } from '../config';
 import { preparePage, URL } from './browser';
 
 async function start() {
   console.log('Connecting to Chrome');
   const browser = await playwright.chromium.connectOverCDP(
-    'http://localhost:9222'
+    'http://localhost:9222',
+    { timeout: config.protocolTimeout }
   );
   console.log('Connected');
 

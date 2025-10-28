@@ -121,6 +121,54 @@ npm run launch:local
 
 Basicaly, you need to inject the `wppconnect-wa.js` file into the browser after WhatsApp page load.
 
+## Configuration
+
+You can configure WA-JS behavior by setting a global `WPPConfig` object before injecting the script:
+
+```javascript
+// Configure before injecting wa-js
+window.WPPConfig = {
+  deviceName: 'My WhatsApp Client',
+  // Protocol timeout for Chrome DevTools operations (in milliseconds)
+  // Increase this if you get "Runtime.callFunctionOn timed out" errors
+  protocolTimeout: 300000, // 5 minutes (default: 180000 = 3 minutes)
+  // Other configurations...
+};
+```
+
+### Available Configuration Options
+
+- `deviceName`: Set device name (string or false to disable)
+- `protocolTimeout`: Timeout for protocol operations in milliseconds (default: 180000)
+  - **Important**: If you're experiencing `Runtime.callFunctionOn timed out` errors when sending files or media, increase this value
+  - Recommended values: 180000 (3min) for text, 300000 (5min) for media, 600000 (10min) for large files
+- `liveLocationLimit`: Number of chats to check for live location (default: 10)
+- `disableGoogleAnalytics`: Disable analytics tracking (default: false)
+- `sendStatusToDevice`: Send status to your device (default: false)
+
+### Troubleshooting Timeout Issues
+
+If you encounter `Runtime.callFunctionOn timed out` errors, especially when sending media files:
+
+1. **Increase protocolTimeout**:
+   ```javascript
+   window.WPPConfig = {
+     protocolTimeout: 600000, // 10 minutes for large files
+   };
+   ```
+
+2. **For Playwright users**, you can also set the timeout in the browser launch options:
+   ```typescript
+   const browser = await playwright.chromium.launchPersistentContext(userDataDir, {
+     timeout: 600000, // 10 minutes
+   });
+   ```
+
+3. **The timeout applies to**:
+   - Media file processing and preparation
+   - Chrome DevTools Protocol operations
+   - File upload operations
+
 ### TamperMonkey or GreaseMonkey
 
 ```javascript

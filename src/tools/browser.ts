@@ -22,6 +22,8 @@ import * as path from 'path';
 import * as playwright from 'playwright-chromium';
 import * as url from 'url';
 
+import { config } from '../config';
+
 export const URL = 'https://web.whatsapp.com/';
 export const WA_DIR = path.resolve(__dirname, '../../wa-source');
 
@@ -178,14 +180,23 @@ export async function getPage(options?: LaunchArguments[1]) {
     }
   }
 
+  // Merge default options with user-provided options
+  const browserOptions = {
+    timeout: config.protocolTimeout,
+    ...options,
+  };
+
   const browser = await playwright.chromium.launchPersistentContext(
     userDataDir,
-    options
+    browserOptions
   );
 
   const page = browser.pages().length
     ? browser.pages()[0]
     : await browser.newPage();
+
+  // Set protocol timeout for the page
+  page.setDefaultTimeout(config.protocolTimeout);
 
   await preparePage(page);
 

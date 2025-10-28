@@ -26,4 +26,5 @@ export const defaultConfig: Config = {
   poweredBy: 'WA-JS',
   sendStatusToDevice: false,
   syncAllStatus: true,
+  protocolTimeout: 180000, // 3 minutes for media operations
 };

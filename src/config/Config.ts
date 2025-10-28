@@ -81,4 +81,12 @@ export interface Config {
    * @default false
    */
   syncAllStatus: boolean;
+
+  /**
+   * Protocol timeout in milliseconds for Chrome DevTools Protocol operations.
+   * Increase this value if you experience "Runtime.callFunctionOn timed out" errors,
+   * especially when sending media files.
+   * @default 180000 (3 minutes)
+   */
+  protocolTimeout: number;
 }

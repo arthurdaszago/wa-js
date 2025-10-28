@@ -17,6 +17,7 @@
 import Debug from 'debug';
 
 import { assertFindChat, assertGetChat } from '../../assert';
+import { config } from '../../config';
 import {
   blobToArrayBuffer,
   createWid,
@@ -349,7 +350,55 @@ export async function sendFileMessage(
     await markIsRead(chat.id).catch(() => null);
   }
 
-  await mediaPrep.waitForPrep();
+  // Wrap mediaPrep.waitForPrep() with timeout to handle CDP timeouts
+  debug(
+    `waiting for media preparation with timeout ${config.protocolTimeout}ms`
+  );
+  try {
+    await Promise.race([
+      mediaPrep.waitForPrep(),
+      new Promise((_, reject) =>
+        setTimeout(
+          () =>
+            reject(
+              new WPPError(
+                'media_prep_timeout',
+                `Media preparation timed out after ${config.protocolTimeout}ms. Try increasing the protocolTimeout configuration.`,
+                {
+                  timeout: config.protocolTimeout,
+                  type: options.type,
+                }
+              )
+            ),
+          config.protocolTimeout
+        )
+      ),
+    ]);
+  } catch (error) {
+    debug(`media preparation failed: ${error}`);
+    if (error instanceof WPPError && error.code === 'media_prep_timeout') {
+      throw error;
+    }
+    // Re-throw with more context if it's a protocol timeout
+    if (
+      error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof error.message === 'string' &&
+      error.message.includes('Runtime.callFunctionOn timed out')
+    ) {
+      throw new WPPError(
+        'protocol_timeout',
+        `Protocol timeout occurred during media preparation. Increase the protocolTimeout configuration (current: ${config.protocolTimeout}ms).`,
+        {
+          originalError: error.message,
+          timeout: config.protocolTimeout,
+          type: options.type,
+        }
+      );
+    }
+    throw error;
+  }
   const mediaData =
     (mediaPrep as any)._mediaData || (mediaPrep as any).mediaData;
   if ((options as any)?.isPtv) {
