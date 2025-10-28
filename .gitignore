@@ -1,7 +1,6 @@
 *.tgz
 /.idea
 /debug.log
-/dist/
 /docs
 /media
 /node_modules
