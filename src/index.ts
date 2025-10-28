@@ -19,6 +19,7 @@
 import './config';
 import './deviceName';
 import './gtag';
+import './websocket';
 
 import * as webpack from './webpack';
 

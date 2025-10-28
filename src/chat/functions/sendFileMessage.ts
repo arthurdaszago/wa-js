@@ -430,7 +430,7 @@ export async function sendFileMessage(
             'Timeout for wait response of send media status'
           )
         );
-      }, 30000);
+      }, 600000); // Increased from 30000 to 600000 (10 minutes)
 
       const interval = setInterval(async () => {
         const get = await getMessageById(message.id);
