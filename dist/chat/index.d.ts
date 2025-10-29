@@ -15,6 +15,7 @@
  */
 import './events';
 import './patch';
+import './patch-mediaprep';
 export * from './defaultSendMessageOptions';
 export * from './functions';
 export * from './types';

@@ -349,7 +349,10 @@ export async function sendFileMessage(
     await markIsRead(chat.id).catch(() => null);
   }
 
+  console.log('[WA.js sendFileMessage] Starting mediaPrep.waitForPrep()...');
   await mediaPrep.waitForPrep();
+  console.log('[WA.js sendFileMessage] mediaPrep.waitForPrep() completed');
+
   const mediaData =
     (mediaPrep as any)._mediaData || (mediaPrep as any).mediaData;
   if ((options as any)?.isPtv) {
@@ -358,6 +361,7 @@ export async function sendFileMessage(
     mediaData.fullWidth = 1128;
   }
   debug(`sending message (${options.type}) with id ${rawMessage.id}`);
+  console.log('[WA.js sendFileMessage] Starting mediaPrep.sendToChat()...');
   const sendMsgResult = mediaPrep.sendToChat(chat, {
     caption: options.caption,
     footer: options.footer,
@@ -407,12 +411,14 @@ export async function sendFileMessage(
   if (chatId !== 'status@broadcast') {
     if (options.waitForAck) {
       debug(`waiting ack for ${message.id}`);
+      console.log('[WA.js sendFileMessage] Waiting for ACK...');
 
       const sendResult = await sendMsgResult;
 
       debug(
         `ack received for ${message.id} (ACK: ${message.ack}, SendResult: ${sendResult})`
       );
+      console.log('[WA.js sendFileMessage] ACK received successfully');
     }
 
     return {

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Wid } from '../../whatsapp';
-import { SendMessageOptions, SendMessageReturn } from '..';
 import { MessageButtonsOptions } from '.';
+import { SendMessageOptions, SendMessageReturn } from '..';
+import { Wid } from '../../whatsapp';
 export interface FileMessageOptions extends SendMessageOptions {
     type?: string;
     caption?: string;
