@@ -18,11 +18,17 @@ import * as webpack from '../webpack';
 
 webpack.onInjected(() => {
   /**
-   * Increase protocol timeout for sendIq and sendSmaxStanza operations
-   * to handle large files and slow connections better
+   * COMPREHENSIVE TIMEOUT FIX FOR MEDIA UPLOADS AND PROTOCOL OPERATIONS
+   *
+   * This patch addresses multiple timeout issues:
+   * 1. Protocol-level timeouts (sendIq, sendSmaxStanza) - increased to 10 minutes
+   * 2. Network request timeouts - patches XMLHttpRequest and fetch
+   * 3. Media upload operations - increases timeout for large files
    */
 
-  // Find the module that contains sendIq functions
+  // =================================================================
+  // PART 1: PATCH PROTOCOL TIMEOUTS (sendIq, sendSmaxStanza)
+  // =================================================================
   const sendIqModule = webpack.search(
     (m) => m.deprecatedSendIq && m.deprecatedSendIqWithoutRetry
   );
@@ -103,4 +109,67 @@ webpack.onInjected(() => {
       };
     }
   }
+
+  // =================================================================
+  // PART 2: PATCH BROWSER-LEVEL NETWORK TIMEOUTS
+  // =================================================================
+  // Patch XMLHttpRequest to increase timeout for media uploads
+  const originalXHROpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (
+    this: XMLHttpRequest,
+    ...args: any[]
+  ) {
+    // eslint-disable-next-line prefer-rest-params, prefer-spread
+    originalXHROpen.apply(this, args as any);
+
+    // If this looks like a media upload request, set a longer timeout
+    const url = args[1];
+    const urlString = url?.toString() || '';
+    if (
+      urlString.includes('mms.whatsapp.net') ||
+      urlString.includes('upload') ||
+      urlString.includes('media')
+    ) {
+      // Set timeout to 10 minutes for media uploads
+      this.timeout = 600000;
+    }
+  };
+
+  // Patch fetch to include longer timeouts for media uploads
+  const originalFetch = window.fetch;
+  window.fetch = function (input: RequestInfo | URL, init?: RequestInit) {
+    const url = typeof input === 'string' ? input : input.toString();
+
+    // If this looks like a media upload request, modify the signal to have a longer timeout
+    if (
+      url.includes('mms.whatsapp.net') ||
+      url.includes('upload') ||
+      url.includes('media')
+    ) {
+      // Create a new AbortController with a longer timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutes
+
+      // Combine with existing signal if present
+      const originalSignal = init?.signal;
+      if (originalSignal) {
+        originalSignal.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          controller.abort();
+        });
+      }
+
+      // Create new init object with our signal
+      const newInit: RequestInit = {
+        ...init,
+        signal: controller.signal,
+      };
+
+      return originalFetch.call(window, input, newInit).finally(() => {
+        clearTimeout(timeoutId);
+      });
+    }
+
+    return originalFetch.call(window, input, init);
+  };
 });
