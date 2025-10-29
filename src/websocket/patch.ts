@@ -27,6 +27,8 @@ webpack.onInjected(() => {
    * 4. Media upload operations - increases timeout for large files
    */
 
+  console.log('[WA.js Timeout Patch] Starting to apply patches...');
+
   // =================================================================
   // PART 1: PATCH WHATSAPP CONSTANTS (MMS_THUMBNAIL_UPLOAD_TIMEOUT)
   // =================================================================
@@ -39,7 +41,11 @@ webpack.onInjected(() => {
     // Increase thumbnail upload timeout from 3 seconds to 10 minutes
     constantsModule.MMS_THUMBNAIL_UPLOAD_TIMEOUT = 600000;
     console.log(
-      '[WA.js] Patched MMS_THUMBNAIL_UPLOAD_TIMEOUT: 3000ms -> 600000ms'
+      '[WA.js] ✓ Patched MMS_THUMBNAIL_UPLOAD_TIMEOUT: 3000ms -> 600000ms'
+    );
+  } else {
+    console.warn(
+      '[WA.js] ✗ Could not find MMS_THUMBNAIL_UPLOAD_TIMEOUT constant'
     );
   }
 
@@ -67,6 +73,7 @@ webpack.onInjected(() => {
   );
 
   if (sendIqModule) {
+    console.log('[WA.js] ✓ Found sendIq module, applying patches...');
     // Wrap deprecatedSendIq to increase timeout
     const originalDeprecatedSendIq = sendIqModule.deprecatedSendIq;
     if (originalDeprecatedSendIq) {
@@ -86,6 +93,7 @@ webpack.onInjected(() => {
         }
         return originalDeprecatedSendIq.call(this, stanzaData, ...args);
       };
+      console.log('[WA.js] ✓ Patched deprecatedSendIq timeout');
     }
 
     // Wrap deprecatedSendIqWithoutRetry to increase timeout
@@ -112,7 +120,10 @@ webpack.onInjected(() => {
           ...args
         );
       };
+      console.log('[WA.js] ✓ Patched deprecatedSendIqWithoutRetry timeout');
     }
+  } else {
+    console.warn('[WA.js] ✗ Could not find sendIq module');
   }
 
   // Find the module that contains sendSmaxStanza
@@ -140,12 +151,16 @@ webpack.onInjected(() => {
         }
         return originalSendSmaxStanza.call(this, stanzaData, ...args);
       };
+      console.log('[WA.js] ✓ Patched sendSmaxStanza timeout');
     }
+  } else {
+    console.warn('[WA.js] ✗ Could not find sendSmaxStanza module');
   }
 
   // =================================================================
-  // PART 2: PATCH BROWSER-LEVEL NETWORK TIMEOUTS
+  // PART 3: PATCH BROWSER-LEVEL NETWORK TIMEOUTS
   // =================================================================
+  console.log('[WA.js] ✓ Patching browser XHR and fetch timeouts...');
   // Patch XMLHttpRequest to increase timeout for media uploads
   const originalXHROpen = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function (
@@ -205,4 +220,9 @@ webpack.onInjected(() => {
 
     return originalFetch.call(window, input, init);
   };
+
+  console.log('[WA.js] ========================================');
+  console.log('[WA.js] Timeout patches applied successfully!');
+  console.log('[WA.js] All timeouts increased to 10 minutes (600000ms)');
+  console.log('[WA.js] ========================================');
 });
