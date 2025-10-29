@@ -21,13 +21,46 @@ webpack.onInjected(() => {
    * COMPREHENSIVE TIMEOUT FIX FOR MEDIA UPLOADS AND PROTOCOL OPERATIONS
    *
    * This patch addresses multiple timeout issues:
-   * 1. Protocol-level timeouts (sendIq, sendSmaxStanza) - increased to 10 minutes
-   * 2. Network request timeouts - patches XMLHttpRequest and fetch
-   * 3. Media upload operations - increases timeout for large files
+   * 1. WhatsApp Constants - increases thumbnail upload timeout from 3s to 10 minutes
+   * 2. Protocol-level timeouts (sendIq, sendSmaxStanza) - increased to 10 minutes
+   * 3. Network request timeouts - patches XMLHttpRequest and fetch
+   * 4. Media upload operations - increases timeout for large files
    */
 
   // =================================================================
-  // PART 1: PATCH PROTOCOL TIMEOUTS (sendIq, sendSmaxStanza)
+  // PART 1: PATCH WHATSAPP CONSTANTS (MMS_THUMBNAIL_UPLOAD_TIMEOUT)
+  // =================================================================
+  // This is CRITICAL for video uploads - default is only 3 seconds!
+  const constantsModule = webpack.search(
+    (m) => m.MMS_THUMBNAIL_UPLOAD_TIMEOUT === 3000
+  );
+
+  if (constantsModule) {
+    // Increase thumbnail upload timeout from 3 seconds to 10 minutes
+    constantsModule.MMS_THUMBNAIL_UPLOAD_TIMEOUT = 600000;
+    console.log(
+      '[WA.js] Patched MMS_THUMBNAIL_UPLOAD_TIMEOUT: 3000ms -> 600000ms'
+    );
+  }
+
+  // Also patch uploadThumbnail function to use extended timeout
+  const uploadThumbnailModule = webpack.search(
+    (m) => m.default && typeof m.default === 'function'
+  );
+
+  if (uploadThumbnailModule?.default) {
+    const originalUploadThumbnail = uploadThumbnailModule.default;
+    uploadThumbnailModule.default = function (data: any) {
+      // Override timeout if present
+      if (data && typeof data === 'object' && 'timeout' in data) {
+        data.timeout = 600000; // 10 minutes
+      }
+      return originalUploadThumbnail.call(this, data);
+    };
+  }
+
+  // =================================================================
+  // PART 2: PATCH PROTOCOL TIMEOUTS (sendIq, sendSmaxStanza)
   // =================================================================
   const sendIqModule = webpack.search(
     (m) => m.deprecatedSendIq && m.deprecatedSendIqWithoutRetry
